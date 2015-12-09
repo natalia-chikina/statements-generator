@@ -7,10 +7,11 @@ scalaVersion := "2.10.5"
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql" % "1.4.1",
   "com.datastax.spark" %% "spark-cassandra-connector" % "1.4.0",
-  "com.typesafe" % "config" % "1.3.0"
+  "com.typesafe" % "config" % "1.3.0",
+  "org.scalacheck" %% "scalacheck" % "1.12.5"
 )
 
-mainClass := Some("com.poc.statement.Generator")
+mainClass := Some("com.poc.statement.ingest.Generator")
 
 assemblyJarName in assembly := "statements-generator.jar"
 
