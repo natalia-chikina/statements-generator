@@ -36,15 +36,29 @@ object Generator extends App {
   val conf = cassandraSparkConf().setAppName("statements-generator")
   val sc = new SparkContext(conf)
 
-  var seq = Seq[Statement]()
+  implicit lazy val arbDate: Arbitrary[Date] = Arbitrary(Gen.choose(new Date(2015, 11, 1).getTime, new Date(2015, 12, 1).getTime).map(new Date(_)))
 
-  val accType = Gen.oneOf("checcking", "savings", "credit", "personal")
+  val accType = Gen.oneOf("checking", "savings", "credit", "personal")
+  val timestampGen = Arbitrary.arbitrary[Date](arbDate)
   val merchType = Gen.oneOf("retail", "service", "fuel", "travel")
-  val idGen = Gen.choose(1000000l, 9999999l)
-  val amountGen = Gen.choose(0f, 999999999f)
+  val idGen = Gen.choose(1000000L, 9999999L)
 
-  (1 to 100).toStream.foreach(i => seq = Statement(idGen.sample.get, new Date(),
-    accType.sample.get, amountGen.sample.get, idGen.sample.get, merchType.sample.get) +: seq)
+  val amountGenNormal = Gen.choose(0f, 200f)
+  val amountGenSuspicious = Gen.choose(10000f, 100000f)
+
+  def generateSequence(accountNumber: Long, amountGen: Gen[Float]) = (1L to accountNumber).map(_ =>
+    Statement(idGen.sample.get, timestampGen.sample.get,
+      accType.sample.get, amountGen.sample.get, idGen.sample.get, merchType.sample.get))
+
+
+  val percentage = 0.05
+  val accountNumber = 100
+
+  private val suspiciousAccountNumber = accountNumber * percentage.toLong
+  
+  val seq = List((suspiciousAccountNumber , amountGenSuspicious), (accountNumber - suspiciousAccountNumber , amountGenNormal))
+    .flatMap(params => generateSequence(params._1, params._2))
+  
   sc.parallelize(seq).saveToCassandra(keyspaceName, tableName)
 
 }
