@@ -1,6 +1,7 @@
 package com.poc.statement.ingest
 
 import java.util.Date
+import java.time._
 
 import com.typesafe.config.ConfigFactory
 import org.apache.spark.SparkConf
@@ -36,7 +37,10 @@ object Generator extends App {
   val conf = cassandraSparkConf().setAppName("statements-generator")
   val sc = new SparkContext(conf)
 
-  implicit lazy val arbDate: Arbitrary[Date] = Arbitrary(Gen.choose(new Date(2015, 11, 1).getTime, new Date(2015, 12, 1).getTime).map(new Date(_)))
+  val initialDate = Date.from(LocalDateTime.of(2015, 11, 1, 1, 1, 1, 1).atZone(ZoneId.systemDefault()).toInstant).getTime
+  val endDate = Date.from(LocalDateTime.of(2015, 12, 1, 1, 1, 1, 1).atZone(ZoneId.systemDefault()).toInstant).getTime
+
+  implicit lazy val arbDate: Arbitrary[Date] = Arbitrary(Gen.choose(initialDate, endDate).map(new Date(_)))
 
   val accType = Gen.oneOf("checking", "savings", "credit", "personal")
   val timestampGen = Arbitrary.arbitrary[Date](arbDate)
