@@ -55,12 +55,12 @@ object Generator extends App {
       accType.sample.get, amountGen.sample.get, idGen.sample.get, merchType.sample.get))
 
 
-  val percentage = 0.05
+  val normalPercentage = 0.95
+  val suspiciousPercentage = 0.05
   val accountNumber = 100
 
-  private val suspiciousAccountNumber = accountNumber * percentage.toLong
   
-  val seq = List((suspiciousAccountNumber , amountGenSuspicious), (accountNumber - suspiciousAccountNumber , amountGenNormal))
+  val seq = List(((accountNumber * suspiciousPercentage).toLong , amountGenSuspicious), ((accountNumber * normalPercentage).toLong , amountGenNormal))
     .flatMap(params => generateSequence(params._1, params._2))
   
   sc.parallelize(seq).saveToCassandra(keyspaceName, tableName)
