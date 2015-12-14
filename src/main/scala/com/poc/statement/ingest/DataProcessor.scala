@@ -4,6 +4,7 @@ import com.typesafe.config.ConfigFactory
 import org.apache.spark.{SparkContext, SparkConf}
 import com.datastax.spark.connector._
 
+case class Result(account_id: Long, amount: Double)
 
 object DataProcessor extends App {
 
@@ -27,22 +28,14 @@ object DataProcessor extends App {
   val conf = cassandraSparkConf().setAppName("statements-generator")
   val sc = new SparkContext(conf)
 
+  val threshold = 10000
 
   val suspiciousAccounts = sc.cassandraTable(keyspaceName, tableName)
     .groupBy(row => (row.getLong("account_id"), row.getLong("merchant_id"), row.getDate("timestamp")))
     .map(x => (x._1, x._2.foldLeft(0.0)((b, a) => b + a.getFloat("amount"))))
-    .filter(_._2 > 10000)
-  .map( x => Result(x._1._1, x._2) )
-
-  case class Result(account_id: Long, amount: Double)
+    .filter(_._2 > threshold)
+  .map( x => Result(x._1._1, x._2))
 
   suspiciousAccounts.saveAsCassandraTable(keyspaceName, "result", SomeColumns("account_id", "amount"))
-
-
-  
-
-
-
-  
 
 }
